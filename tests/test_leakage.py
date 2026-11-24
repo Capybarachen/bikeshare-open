@@ -85,3 +85,15 @@ def test_no_lag_window_crosses_a_missing_day(feats):
         for k in range(1, LAG_WARMUP + 1):
             prev = day - pd.Timedelta(days=k)
             assert prev in raw_days, f"{day.date()} lag window crosses missing day {prev.date()}"
+
+
+def test_temp_sq_is_square_of_temp(feats):
+    """temp_sq must equal temp**2 on every row.
+
+    This is a same-day feature (no leakage concern). The test verifies the
+    transformation: squared temperature should match the square of original.
+    This test MUST fail until src/features.py adds the temp_sq column.
+    """
+    assert "temp_sq" in feats.columns, "temp_sq column must exist before this test passes"
+    assert (feats["temp_sq"] == feats["temp"] ** 2).all(), \
+        "temp_sq must equal temp squared for every row"
