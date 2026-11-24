@@ -67,7 +67,6 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # --- Weather: measured same-day, available to a forecaster ----------
     out["weather_severity"] = encode_weather(out.weather)
-    out["temp_sq"] = out["temp"] ** 2
 
     # --- Lagged target: past values only. shift(1) is the whole ballgame;
     # without it, cnt_roll_7 would contain today's count. -----------------
