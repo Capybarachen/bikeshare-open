@@ -4,11 +4,13 @@ Daily Capital Bikeshare counts, 2011-2012. We forecast `cnt` (total daily
 rides) from calendar, weather, and lagged-demand features.
 
 ## Commands
-- `make data` - download raw CSV and assert its shape
-- `make features` - build `data/processed/features.parquet`
-- `make train` - fit models, write `reports/metrics.json`
 - `make test` - pytest; run this before claiming anything works
 - `make all` - the three pipeline stages in order
+
+## Confirm before completion
+* Only after pasting the actual results of `make test` from this turn can you say "done", "fixed" or "works". If metrics changed, also paste the output of `make all`.
+* Do not modify or skip a test, or relax its conditions, just to get it to pass, unless I ask you to.
+* When adding a test, run it on the broken code first, make sure it fails, and post the failure result.
 
 ## Non-negotiable rules
 - **Never** put `casual` or `registered` in a feature set:
@@ -24,18 +26,18 @@ rides) from calendar, weather, and lagged-demand features.
   count) alongside every model. A negative R^2 is a finding, not a bug
   to hide.
 
+## Data and records
+* Do not modify anything in `data/raw/`.
+* Before using any new raw data column, classify it in `src/config.py`.
+* For every methodological choice, add a dated line in `docs/DECISIONS.md` explaining the decision.
+* Don't run `git commit`; I'll commit the changes myself.
+
 ## Style
 - Standard library, pandas, scikit-learn only. No new dependencies
   without asking. Versions are pinned in `requirements.txt`.
-- Modules are runnable: `python -m src.<module>` prints a one-line `OK ...`
-  summary.
-- Paths and constants live in `src/config.py`. Nothing is hardcoded twice.
 
 ## Gotchas
 - The mirror in `DATA_URL` is missing 2011-03-10. It is NOT the UCI file:
   728 rows from 2011-01-03, not 731 from 2011-01-01.
-- `weather` uses the labels `GOOD` / `MISTY` / `BAD`, not the UCI codes 1-4.
 - Ridership grew ~65% from 2011 to 2012, so tree models trained on 2011
   cannot extrapolate to 2012. That is the headline result, not an error.
-- 2012-10-29 (Hurricane Sandy, 22 rides) is in the test set. Expect it in
-  any residual plot.
