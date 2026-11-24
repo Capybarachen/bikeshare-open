@@ -7,7 +7,7 @@ scores R^2 = 1.0 and looks brilliant while having learned nothing.
 import pandas as pd
 import pytest
 
-from src.config import FORBIDDEN, TARGET
+from src.config import FORBIDDEN, LAG_WARMUP, TARGET
 from src.features import build_features, feature_columns
 from src.ingest import load_raw
 
@@ -64,3 +64,24 @@ def test_no_missing_values(feats):
 def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_monotonic_increasing
     assert feats.dteday.is_unique
+
+
+# Named here on purpose, not read from src/config.py: a test that checks the
+# feature set against FORBIDDEN cannot catch an edit to FORBIDDEN itself.
+KNOWN_LEAKS = {"casual", "registered", "cnt"}
+
+
+def test_known_leaks_never_reach_the_model(feats):
+    leaked = set(feature_columns(feats)) & KNOWN_LEAKS
+    assert not leaked, f"leaky columns in feature set: {sorted(leaked)}"
+
+
+def test_no_lag_window_crosses_a_missing_day(feats):
+    """Every row's lag window must lie on days present in the raw data.
+    Without reindex_to_calendar, 2011-03-11 survives with a lag that
+    silently skips the missing 2011-03-10."""
+    raw_days = set(load_raw().dteday)
+    for day in feats.dteday:
+        for k in range(1, LAG_WARMUP + 1):
+            prev = day - pd.Timedelta(days=k)
+            assert prev in raw_days, f"{day.date()} lag window crosses missing day {prev.date()}"
