@@ -6,7 +6,7 @@ allowed-tools: Read, Edit, Bash(python -m pytest*), Bash(make*)
 
 # Current feature set
 
-!`python -m src.features`
+Run `make features` first; its last line lists the current features.
 
 # Adding a feature: $ARGUMENTS
 
