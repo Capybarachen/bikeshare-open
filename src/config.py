@@ -28,7 +28,7 @@ TARGET = "cnt"
 #    casual + registered == cnt exactly, on every row. A model handed these
 #    scores R^2 ~ 1.0 and has learned addition. At prediction time you would
 #    not know either input: they are components of the thing being predicted.
-LEAKAGE_COLS = {"cnt"}
+LEAKAGE_COLS = {"cnt", "casual", "registered"}
 
 # 2. Time indexes: not leakage, but a bad bet. A tree splits on "after date
 #    X" and predicts a flat constant for every future date; a linear model
