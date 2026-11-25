@@ -122,3 +122,20 @@ hook exit code: 0
 - Turn 2: I told it to leave train alone and fix the valid line. It changed `>=` back to `>`, identical to the original. It said "All 18 tests now pass" without pasting the output; my run: `18 passed`.
 
 **Gap this exposed in the tests:** `test_split.py` checks only that the splits are ordered and disjoint, not that each boundary day lands in the right split, so the wrong fix in turn 1 would have turned the suite green.
+
+## Fix for fault 4: hook now runs the whole suite
+
+Changed `.claude/hooks/check_leakage.sh` to run `python -m pytest tests/ -q` instead of `tests/test_leakage.py` only (the full suite takes under 1 s). Re-seeded fault 4 by hand, ran the new hook, then `git restore`:
+```
+
+tests/test_split.py:30: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_split.py::test_splits_are_ordered_in_time - AssertionError:...
+FAILED tests/test_split.py::test_no_overlapping_dates - assert False
+2 failed, 16 passed in 0.81s
+hook exit code: 2
+```
+
+Old hook on the same fault: exit 0. New hook: exit 2, with the two test_split.py failures sent back to the agent. After restoring: `18 passed`.
+
+Still not covered: edits made through Bash (`sed -i`, `python -c`) do not trigger the hook, which matches only Edit|Write; and a wrong fix that passes all tests (fault 4, turn 1) is invisible to any test-running hook.

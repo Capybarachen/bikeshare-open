@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse hook: re-run the leakage tests whenever src/ changes.
+# PostToolUse hook: re-run the whole test suite whenever src/ changes.
 #
 # This runs AFTER the edit has landed, so it cannot prevent the write. What
 # exit 2 does is send stderr back to Claude as a system message, so the
@@ -19,8 +19,8 @@ case "$path" in
 esac
 
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
-if ! out=$(python -m pytest tests/test_leakage.py -q 2>&1); then
-  echo "Leakage tests failed after editing $path:" >&2
+if ! out=$(python -m pytest tests/ -q 2>&1); then
+  echo "Tests failed after editing $path:" >&2
   echo "$out" | tail -20 >&2
   exit 2
 fi
