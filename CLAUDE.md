@@ -32,6 +32,7 @@ rides) from calendar, weather, and lagged-demand features.
 * Before using any new raw data column, classify it in `src/config.py`.
 * For every methodological choice, add a dated line in `docs/DECISIONS.md` explaining the decision.
 * Don't run `git commit`; I'll commit the changes myself.
+* Do not edit `docs/SEEDED_FAULTS.md` or `docs/AUDIT.md`; I write those records myself.
 
 ## Style
 - Standard library, pandas, scikit-learn only. No new dependencies
