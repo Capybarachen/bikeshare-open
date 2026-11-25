@@ -11,6 +11,7 @@ rides) from calendar, weather, and lagged-demand features.
 * Only after pasting the actual results of `make test` from this turn can you say "done", "fixed" or "works". If metrics changed, also paste the output of `make all`.
 * Do not modify or skip a test, or relax its conditions, just to get it to pass, unless I ask you to.
 * When adding a test, run it on the broken code first, make sure it fails, and post the failure result.
+* Before saying a model or feature beats a baseline, run `/vs-baseline <model>` and quote its last line.
 
 ## Non-negotiable rules
 - **Never** put `casual` or `registered` in a feature set:
