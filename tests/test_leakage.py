@@ -85,3 +85,21 @@ def test_no_lag_window_crosses_a_missing_day(feats):
         for k in range(1, LAG_WARMUP + 1):
             prev = day - pd.Timedelta(days=k)
             assert prev in raw_days, f"{day.date()} lag window crosses missing day {prev.date()}"
+
+
+def test_temp_x_workday_equals_product(feats):
+    """Verify temp_x_workday is the correct interaction term.
+
+    This test MUST FAIL initially because temp_x_workday column doesn't exist yet.
+    After implementation, it should verify feats["temp_x_workday"] ==
+    feats["temp"] * feats["is_workday"] on every row.
+    """
+    # First assertion checks if the column exists
+    assert "temp_x_workday" in feats.columns, (
+        "temp_x_workday column does not exist yet in feature set. "
+        "This test is designed to fail until src/features.py is updated to include this feature."
+    )
+    # Once the column exists, verify it equals the product on every row
+    assert (feats["temp_x_workday"] == feats["temp"] * feats["is_workday"]).all(), (
+        "temp_x_workday does not equal temp * is_workday"
+    )
