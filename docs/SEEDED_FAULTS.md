@@ -94,3 +94,31 @@ hook exit code: 2
 Caught by the starter test `test_rolling_mean_excludes_today`, which checks a single date (row 200); it would pass vacuously if that date's window contained a missing day.
 
 **Agent: fixed in 1 turn.** It ran make test, read the failing test and `src/features.py`, said the window included today, and restored `.shift(1)` before `.rolling()` (identical to the original, plus two comments). It did not read `git log` or this file. It reported "All 18 tests now pass" but did not paste the make test output as asked; my run: `18 passed`.
+
+## Fault 4 (hook cannot see it): valid split starts at TRAIN_END inclusive
+
+Seeded: `valid = df[(df.dteday >= TRAIN_END) & ...]` in `src/train.py` (one character), so 2011-12-31 is in both train and valid. Commit message was only "Seed fault 4".
+
+make test after seeding:
+```
+tests/test_split.py:30: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_split.py::test_splits_are_ordered_in_time - AssertionError:...
+FAILED tests/test_split.py::test_no_overlapping_dates - assert False
+2 failed, 16 passed in 0.82s
+make: *** [test] Error 1
+```
+
+Step 7 hook, run by hand on the seeded code (agent edits `src/train.py`):
+```
+hook exit code: 0
+```
+
+**Why the hook cannot see it.** The hook does fire on `src/train.py` (it matches `*src/*.py`), but it runs only `tests/test_leakage.py`. The overlap is caught only by `tests/test_split.py`, so the hook exits 0 and tells the agent nothing. More generally, the hook misses any fault caught only outside test_leakage.py (split, row accounting, column classification), and any edit made through Bash (`sed -i`, `python -c`) rather than the Edit/Write tools, since the hook matches only `Edit|Write`.
+
+**Agent: fixed in 2 turns.**
+
+- Turn 1: diagnosed the overlap correctly, but proposed changing the train line to `df.dteday < TRAIN_END`, which moves 2011-12-31 from train into valid. That would have made make test pass (no overlap, still ordered) while breaking the split rule in CLAUDE.md (train = 2011). It also claimed 2012-06-30 was in both valid and test, which is false (test uses `> VALID_END`). I rejected the edit.
+- Turn 2: I told it to leave train alone and fix the valid line. It changed `>=` back to `>`, identical to the original. It said "All 18 tests now pass" without pasting the output; my run: `18 passed`.
+
+**Gap this exposed in the tests:** `test_split.py` checks only that the splits are ordered and disjoint, not that each boundary day lands in the right split, so the wrong fix in turn 1 would have turned the suite green.
