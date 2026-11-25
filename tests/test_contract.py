@@ -1,6 +1,7 @@
 """Guard rails on the ingest contract and the trained model's behaviour."""
 import pandas as pd
 import pytest
+from sklearn.base import clone
 from sklearn.metrics import r2_score
 
 from src.config import CLASSIFIED_COLS, LAG_WARMUP, TARGET
@@ -66,3 +67,13 @@ def test_every_raw_column_is_classified(raw):
     assert not unclassified, f"unclassified raw columns: {sorted(unclassified)}"
     stale = CLASSIFIED_COLS - cols
     assert not stale, f"classified columns missing from the raw CSV: {sorted(stale)}"
+
+
+def test_hgb_ratio_beats_persistence_on_valid(feats):
+    """hgb_ratio predicts cnt / cnt_roll_7 and multiplies back. If the
+    multiply-back is lost, predictions are ratios near 1 and this fails."""
+    cols = feature_columns(feats)
+    train, valid, _ = temporal_split(feats)
+    model = clone(MODELS["hgb_ratio"]).fit(train[cols], train[TARGET])
+    r2 = r2_score(valid[TARGET], model.predict(valid[cols]))
+    assert r2 > r2_score(valid[TARGET], valid.cnt_lag_1), f"hgb_ratio valid R^2 {r2:.4f}"
