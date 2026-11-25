@@ -53,3 +53,16 @@ VALID_END = "2012-06-30"
 # have no complete history and are dropped; tests/test_contract.py uses this
 # to bound how many rows may legitimately disappear.
 LAG_WARMUP = 7
+
+# --- Every other raw column, so nothing in the CSV is unaccounted for ----
+# Inputs that build_features turns into features: passed through as numbers
+# (temp, atemp, hum, windspeed), encoded (holiday, workday, weather), or the
+# date the calendar features are derived from (dteday).
+FEATURE_INPUT_COLS = {"temp", "atemp", "hum", "windspeed",
+                      "holiday", "workday", "weather", "dteday"}
+# Text labels that restate dteday; calendar features are rebuilt from dteday
+# instead, so these are not used.
+REDUNDANT_COLS = {"season", "mnth", "weekday"}
+
+# Every raw column must appear in one of the sets above.
+CLASSIFIED_COLS = FORBIDDEN | FEATURE_INPUT_COLS | REDUNDANT_COLS
