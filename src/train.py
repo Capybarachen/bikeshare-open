@@ -6,6 +6,7 @@ Two baselines and two models, on purpose.
   baseline_persistence  predict yesterday's count (cnt_lag_1)
   ridge                 standardised linear model on the audited features
   hgb                   gradient-boosted trees on the same features
+  hgb_ratio             the same booster fit on cnt / cnt_roll_7 (Exercise 4)
 
 The mean baseline shows what "the distribution moved" costs. Persistence
 is the baseline that actually matters: ridge's features are dominated by
@@ -17,8 +18,9 @@ Run: python -m src.train
 """
 import json
 
+import numpy as np
 import pandas as pd
-from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.base import BaseEstimator, RegressorMixin, clone
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
@@ -45,11 +47,31 @@ class PersistenceBaseline(BaseEstimator, RegressorMixin):
         return X[self.column].to_numpy(dtype=float)
 
 
+class RatioToRolling(BaseEstimator, RegressorMixin):
+    """Fit `estimator` on y / X[column] and multiply its predictions back by
+    X[column]. With column = cnt_roll_7 the booster learns "today relative to
+    the last 7 days", a range that does not move when ridership grows, so it
+    no longer has to extrapolate. cnt_roll_7 excludes today, so no leak."""
+
+    def __init__(self, estimator=None, column: str = "cnt_roll_7"):
+        self.estimator = estimator
+        self.column = column
+
+    def fit(self, X, y):
+        scale = X[self.column].to_numpy(dtype=float)
+        self.estimator_ = clone(self.estimator).fit(X, np.asarray(y, dtype=float) / scale)
+        return self
+
+    def predict(self, X):
+        return self.estimator_.predict(X) * X[self.column].to_numpy(dtype=float)
+
+
 MODELS = {
     "baseline_mean": DummyRegressor(strategy="mean"),
     "baseline_persistence": PersistenceBaseline("cnt_lag_1"),
     "ridge": make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
     "hgb": HistGradientBoostingRegressor(random_state=0, max_iter=300),
+    "hgb_ratio": RatioToRolling(HistGradientBoostingRegressor(random_state=0, max_iter=300)),
 }
 
 
