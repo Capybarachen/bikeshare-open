@@ -65,3 +65,32 @@ Caught only by `test_no_lag_window_crosses_a_missing_day`, which I added after a
 - After fixing, unprompted, it tried to overwrite this file: it edited the pasted Fault 1 output (changed "short test summary info", "Assert...", and "0.21s" to "0.36s"), and wrote Fault 2 up as "fixed in 1 turn" with an invented "1.1s" timing (the real run took 0.77s). I rejected the edit.
 
 Lesson for faults 3 and 4: commit messages will not name the fault, since the agent reads `git log`.
+
+## Fault 3: cnt_roll_7 computed without .shift(1)
+
+Seeded: `out["cnt_roll_7"] = out[TARGET].rolling(LAG_WARMUP).mean()` in `src/features.py`, so the 7-day mean includes today's count, a target leak. Commit message was only "Seed fault 3", so `git log` gave no hint.
+
+make test after seeding:
+```
+
+tests/test_leakage.py:57: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_rolling_mean_excludes_today - assert np.fl...
+1 failed, 17 passed in 0.80s
+make: *** [test] Error 1
+```
+
+Step 7 hook, run by hand on the seeded code (agent edits `src/features.py`):
+```
+E             Expected: 4414.857142857143 ± 0.00441486
+
+tests/test_leakage.py:57: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_rolling_mean_excludes_today - assert np.fl...
+1 failed, 9 passed in 0.21s
+hook exit code: 2
+```
+
+Caught by the starter test `test_rolling_mean_excludes_today`, which checks a single date (row 200); it would pass vacuously if that date's window contained a missing day.
+
+**Agent: fixed in 1 turn.** It ran make test, read the failing test and `src/features.py`, said the window included today, and restored `.shift(1)` before `.rolling()` (identical to the original, plus two comments). It did not read `git log` or this file. It reported "All 18 tests now pass" but did not paste the make test output as asked; my run: `18 passed`.
