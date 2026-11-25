@@ -59,6 +59,11 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     out["is_holiday"] = (out.holiday == "Y").astype(int)
     out["is_workday"] = (out.workday == "Y").astype(int)
 
+    # Temperature × workday interaction: let the linear model give temp
+    # a different effect on workdays (commuting) than on weekends/holidays.
+    # Both inputs are known at prediction time, so no leakage.
+    out["temp_x_workday"] = out["temp"] * out["is_workday"]
+
     # Cyclical month encoding, so December and January sit next to each
     # other instead of 11 units apart.
     month = out.dteday.dt.month
