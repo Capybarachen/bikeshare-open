@@ -51,6 +51,10 @@ def reindex_to_calendar(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
+    # Reindex to a complete calendar first. Without this, 2011-03-11 would
+    # get .shift(1) = 2011-03-08 (the last real day before the gap), which
+    # mislabels a three-day lag as a one-day lag. See CLAUDE.md and test_leakage.py
+    df = reindex_to_calendar(df)
     out = df.sort_values("dteday").reset_index(drop=True).copy()
 
     # --- Calendar: known in advance, so it cannot leak -------------------
