@@ -84,3 +84,11 @@ def test_weather_encoder_rejects_unknown_labels():
     from src.features import encode_weather
     with pytest.raises(ValueError):
         encode_weather(pd.Series(["GOOD", "FOGGY"]))
+
+
+def test_raw_csv_is_unchanged():
+    """Catches edits to data/raw/ that bypass the hook, e.g. a cp from Bash."""
+    import hashlib
+    from src.config import RAW
+    digest = hashlib.sha256(RAW.read_bytes()).hexdigest()
+    assert digest.startswith("a6bed1577f6e4de5"), f"raw CSV changed: sha256 {digest[:16]}"
