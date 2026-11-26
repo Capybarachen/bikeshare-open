@@ -1,10 +1,11 @@
 # Audit
 
-Repository audited: https://github.com/xiaocheng05/bikeshare-open (DSC 180A partner xiaocheng gmail: xic096@ucsd.edu)
+Repository audited: https://github.com/xiaocheng05/bikeshare-open (DSC 180A partner xiaocheng)
 
 Run in a fresh Claude Code session in a separate clone (~/dsc180/audit-c), model bikeshare-coder (qwen3.5:9b). I asked the leakage-auditor subagent to audit all changes in `src` and `tests` since the first commit, using:
 `git diff $(git rev-list --max-parents=0 HEAD) HEAD -- src tests`
 I waited for it to finish and copied the full report exactly as it is.
+
 ## Auditor output (verbatim)
 
 ```text
