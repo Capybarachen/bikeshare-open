@@ -1,105 +1,86 @@
 # Seeded faults
 
-Each fault was committed, then a fresh Claude Code session (bikeshare-coder, manual mode) got one message: "make test is failing. Find the cause and fix it in src/. Do not edit tests/ or data/raw/. When you are done, paste the real make test output." A turn is one message from me.
+Each time, I first break the code myself and commit it, then start a new Claude Code session (bikeshare-coder, manual mode), and just give it this instruction:
 
-## 1. A forbidden column added to feature_columns
+> make test is failing. Find the cause and fix it in src/. Do not edit tests/ or data/raw/. When you are done, paste the real make test output.
 
-Change: `LEAKAGE_COLS = {"cnt"}` in `src/config.py`, so `casual` and `registered` get into `feature_columns`.
+One message from me counts as one turn.
 
-Tests:
+## 1. Added forbidden columns to feature_columns
+
+I changed `LEAKAGE_COLS` to `{"cnt"}` in `src/config.py` so that `casual` and `registered` are included in the model's features.
+
 ```
-tests/test_leakage.py:76: AssertionError
-=========================== short test summary info ============================
 FAILED tests/test_contract.py::test_every_raw_column_is_classified - Assertio...
 FAILED tests/test_leakage.py::test_known_leaks_never_reach_the_model - Assert...
 2 failed, 16 passed in 0.98s
-make: *** [test] Error 1
 ```
-Hook:
-```
-E       assert not {'casual', 'registered'}
 
-tests/test_leakage.py:76: AssertionError
-=========================== short test summary info ============================
+Hook:
+
+```
 FAILED tests/test_leakage.py::test_known_leaks_never_reach_the_model - Assert...
 1 failed, 9 passed in 0.21s
 hook exit code: 2
 ```
 
-Turns to fix: 1.
+Fixed in one turn.
 
-## 2. The .shift(1) deleted from cnt_roll_7
+## 2. Removed .shift(1) from cnt_roll_7
 
-Change: `out["cnt_roll_7"] = out[TARGET].rolling(LAG_WARMUP).mean()` in `src/features.py`, so the 7-day mean includes today.
+Without the shift, the 7-day average includes today's `cnt`.
 
-Tests:
 ```
-
-tests/test_leakage.py:57: AssertionError
-=========================== short test summary info ============================
 FAILED tests/test_leakage.py::test_rolling_mean_excludes_today - assert np.fl...
 1 failed, 17 passed in 0.80s
-make: *** [test] Error 1
 ```
-Hook:
-```
-E             Expected: 4414.857142857143 ± 0.00441486
 
-tests/test_leakage.py:57: AssertionError
-=========================== short test summary info ============================
+Hook:
+
+```
 FAILED tests/test_leakage.py::test_rolling_mean_excludes_today - assert np.fl...
 1 failed, 9 passed in 0.21s
 hook exit code: 2
 ```
 
-Turns to fix: 1.
+Fixed in one turn.
 
-## 3. The weather encoder raise removed
+## 3. Removed the raise from the weather encoder
 
-Change: `raise ValueError(...)` replaced by `pass` in `encode_weather`. No starter test caught this (all 19 passed), so I added `test_weather_encoder_rejects_unknown_labels` first.
+I changed the `raise` in `encode_weather` to `pass`. The original tests didn't catch it at all, and all 19 tests passed. So, before adding this bug, I first wrote `test_weather_encoder_rejects_unknown_labels`.
 
-Tests:
 ```
-
-tests/test_contract.py:85: Failed
-=========================== short test summary info ============================
 FAILED tests/test_contract.py::test_weather_encoder_rejects_unknown_labels - ...
 1 failed, 19 passed in 1.43s
-make: *** [test] Error 1
 ```
-Hook:
-```
-E       Failed: DID NOT RAISE ValueError
 
-tests/test_contract.py:85: Failed
-=========================== short test summary info ============================
+Hook:
+
+```
 FAILED tests/test_contract.py::test_weather_encoder_rejects_unknown_labels - ...
 1 failed, 19 passed in 1.09s
 hook exit code: 2
 ```
 
-Turns to fix: 1.
+Fixed in one turn.
 
-## 4. A cp into data/raw/ from Bash (the hook cannot see it)
+## 4. Used cp in Bash to overwrite a file in data/raw/
 
-What happened: I copied a version of `bike_daily.csv` with one temperature changed (row 101, 13.9725 -> 18.9725) over the raw file with `cp`. The hook only runs on Edit and Write, so it never fired, and the deny rule on `data/raw/` only covers the Edit tool. All tests still passed.
+I first made a copy of the original CSV file, changed the temperature in row 101 from 13.9725 to 18.9725, and then used `cp` to overwrite the original file. Nothing caught the change.
+
+The hook only monitors Edit and Write, and the deny rule only blocks Edit, so `cp` through Bash can get through.
 
 ```
-....................                                                     [100%]
 20 passed in 1.45s
 hook exit code: 0
 ae9848571bf2be1a1da8f2fdec9347f187d49c9efc76b4d7717e39b6c3345321  data/raw/bike_daily.csv
 ```
 
-What would catch it: a hash check on the raw file. I added `test_raw_csv_is_unchanged` (the sha256 must start with `a6bed1577f6e4de5`). With the copied file:
+How did I catch this issue? I checked the file's hash. I added `test_raw_csv_is_unchanged`, which requires the file's SHA-256 to start with `a6bed1577f6e4de5`. I tested it again with the same modified file:
+
 ```
 FAILED tests/test_contract.py::test_raw_csv_is_unchanged - AssertionError: ra...
 1 failed, 20 passed in 1.10s
-make: *** [test] Error 1
 ```
-A `PreToolUse` hook on Bash that blocks writes to `data/raw/` would stop it before it happens.
 
-## Extra faults
-
-- Removed `reindex_to_calendar`: caught by `test_no_lag_window_crosses_a_missing_day`, hook exit 2, fixed in 2 turns.
-- Valid split started at `>= TRAIN_END`: caught only by `test_split.py`. The starter hook ran only `test_leakage.py` and missed it (exit 0), so I changed the hook to run all of `tests/` (now exit 2). Fixed in 2 turns.
+A `PreToolUse` hook for Bash could also block `cp` before it runs.
