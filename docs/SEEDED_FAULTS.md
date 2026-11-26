@@ -84,3 +84,18 @@ FAILED tests/test_contract.py::test_raw_csv_is_unchanged - AssertionError: ra...
 ```
 
 A `PreToolUse` hook for Bash could also block `cp` before it runs.
+
+## Test-first run for temp_x_workday
+
+The test for temp_x_workday was committed before the feature (commit 2558709, with the message "Add failing test for temp_x_workday feature"). I didn't save the test output at the time, so on 2026-11-25, I created a new worktree, checked out that commit, and ran the test again. Here is the actual output:
+
+```text
+E       AssertionError: temp_x_workday column does not exist yet in feature set. This test is designed to fail until src/features.py is updated to include this feature.
+
+tests/test_leakage.py:98: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_temp_x_workday_equals_product - AssertionE...
+1 failed, 16 passed in 1.18s
+```
+
+The next commit (02a98a3) added the feature and the test passed.
