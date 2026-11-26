@@ -77,3 +77,10 @@ def test_hgb_ratio_beats_persistence_on_valid(feats):
     model = clone(MODELS["hgb_ratio"]).fit(train[cols], train[TARGET])
     r2 = r2_score(valid[TARGET], model.predict(valid[cols]))
     assert r2 > r2_score(valid[TARGET], valid.cnt_lag_1), f"hgb_ratio valid R^2 {r2:.4f}"
+
+
+def test_weather_encoder_rejects_unknown_labels():
+    """An unknown weather label must raise, not turn into NaN and get dropped."""
+    from src.features import encode_weather
+    with pytest.raises(ValueError):
+        encode_weather(pd.Series(["GOOD", "FOGGY"]))
